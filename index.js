@@ -1,8 +1,14 @@
 const express = require('express');
 const pool = require('./db'); // Importando a configuração do banco de dados
+const favicon = require ('serve-favicon');
+const path = require('path');
 
 const app = express();
-const port = 3000;
+// Rota para servir o favicon
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public'));
+});
+const port = 3333;
 
 // Analisar o corpo das requisições como JSON
 app.use(express.json());
@@ -50,7 +56,7 @@ app.post('/:table', async (req, res) => {
   const { table } = req.params;
   const columns = Object.keys(req.body);
   const values = Object.values(req.body);
-  const placeholders = columns.map((col, idx) => `$${idx + 1}`).join(', ');
+  const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
 
   try {
     const result = await pool.query(
@@ -101,6 +107,7 @@ app.delete('/:table/:id', async (req, res) => {
   }
 });
 
+// Buscar registros por nome
 app.get('/:table/nome_completo/:nome', async (req, res) => {
   const { table, nome } = req.params;
   try {
@@ -114,8 +121,6 @@ app.get('/:table/nome_completo/:nome', async (req, res) => {
     res.status(500).send('Erro ao procurar pelo nome');
   }
 });
-
-
 
 // Iniciando o servidor
 app.listen(port, () => {

@@ -1,13 +1,15 @@
 const express = require('express');
 const pool = require('./db'); // Importando a configuração do banco de dados
-const favicon = require ('serve-favicon');
+const favicon = require('serve-favicon');
 const path = require('path');
+const { body, validationResult } = require('express-validator');
 
 const app = express();
-// Rota para servir o favicon
-app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public'));
-});
+app.use(express.json());
+
+// Middleware para servir o favicon
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+
 const port = 3333;
 
 // Analisar o corpo das requisições como JSON
@@ -51,24 +53,39 @@ app.get('/:table/:id', async (req, res) => {
   }
 });
 
-// Inserir dados em uma tabela
-app.post('/:table', async (req, res) => {
-  const { table } = req.params;
-  const columns = Object.keys(req.body);
-  const values = Object.values(req.body);
-  const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
+// Inserir dados em uma tabela com validação
+app.post('/:table', 
+  [
+    body('nome_completo').notEmpty().withMessage('O nome completo é obrigatório.'),
+    body('data_de_nascimento').notEmpty().withMessage('A data de nascimento é obrigatória.'),
+    body('regiao_onde_mora').notEmpty().withMessage('A região obrigatória.')
 
-  try {
-    const result = await pool.query(
-      `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
-      values
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erro ao inserir dados');
+    // Adicione outras validações conforme necessário
+  ],
+  async (req, res) => {
+    // Verifica os erros de validação
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { table } = req.params;
+    const columns = Object.keys(req.body);
+    const values = Object.values(req.body);
+    const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+        values
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Erro ao inserir dados');
+    }
   }
-});
+);
 
 // Atualizar dados por ID em uma tabela
 app.put('/:table/:id', async (req, res) => {

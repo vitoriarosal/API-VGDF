@@ -2,7 +2,8 @@ const express = require('express');
 const pool = require('./db'); // Importando a configuração do banco de dados
 const favicon = require('serve-favicon');
 const path = require('path');
-const { body, validationResult } = require('express-validator');
+const { validationResult } = require('express-validator');
+const { validateApa } = require('./validators'); // Importando os validadores
 
 const app = express();
 app.use(express.json());
@@ -54,41 +55,42 @@ app.get('/:table/:id', async (req, res) => {
 });
 
 // Inserir dados em uma tabela com validação
-app.post('/:table', 
-  [
-    body('nome_completo').notEmpty().withMessage('O nome completo é obrigatório.'),
-    body('data_de_nascimento').notEmpty().withMessage('A data de nascimento é obrigatória.'),
-    body('regiao_onde_mora').notEmpty().withMessage('A região obrigatória.')
+app.post('/:table', validateApa, async (req, res) => {
+  // Verifica os erros de validação
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-    // Adicione outras validações conforme necessário
-  ],
-  async (req, res) => {
-    // Verifica os erros de validação
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+  const { table } = req.params;
+  const columns = Object.keys(req.body);
+  const values = Object.values(req.body);
+  const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
 
-    const { table } = req.params;
-    const columns = Object.keys(req.body);
-    const values = Object.values(req.body);
-    const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
-
-    try {
-      const result = await pool.query(
-        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
-        values
-      );
-      res.status(201).json(result.rows[0]);
-    } catch (err) {
+  try {
+    const result = await pool.query(
+      `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+      values
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') { // Código de erro para violação de chave única
+      res.status(400).send('Email já existe.');
+    } else {
       console.error(err);
       res.status(500).send('Erro ao inserir dados');
     }
   }
-);
+});
 
 // Atualizar dados por ID em uma tabela
-app.put('/:table/:id', async (req, res) => {
+app.put('/:table/:id', validateApa, async (req, res) => {
+  // Verifica os erros de validação
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { table, id } = req.params;
   const columns = Object.keys(req.body);
   const values = Object.values(req.body);

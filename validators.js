@@ -6,7 +6,9 @@ const validateApa = [
   body('data_de_nascimento').notEmpty().withMessage('A data de nascimento é obrigatória.')
     .isDate({ format: 'DD/MM/YYYY' }).withMessage('Data de nascimento inválida. Use o formato DD/MM/YYYY.'),
   body('regiao_onde_mora').notEmpty().withMessage('A região onde mora é obrigatória.'),
-  body('email').isEmail().withMessage('Email inválido.')
+  body('email').isEmail().withMessage('Email inválido.'),
+  body('telefone').notEmpty().withMessage('O telefone é obrigatório.') 
+
 ];
 
 module.exports = {
@@ -14,4 +16,3 @@ module.exports = {
 };
 
 
-//GilbertoPEREIRA, 

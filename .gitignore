@@ -1,5 +1,2 @@
-# Ignorar node_modules
-node_modules/
-
-# Ignorar a pasta db (se aplicável)
-.env
+/node_modules
+/.env

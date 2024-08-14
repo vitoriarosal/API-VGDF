@@ -1,9 +1,12 @@
 const express = require('express');
-const pool = require('./db'); // Importando a configuração do banco de dados
+const pool = require('./db'); 
 const favicon = require('serve-favicon');
 const path = require('path');
 const { validationResult } = require('express-validator');
-const { validateApa } = require('./validators'); // Importando os validadores
+const { validateApa } = require('./validators'); 
+
+
+
 
 const app = express();
 app.use(express.json());
@@ -13,10 +16,10 @@ app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 
 const port = 3333;
 
-// Analisar o corpo das requisições como JSON
+// Analisa o corpo das requisições como JSON
 app.use(express.json());
 
-// Rota para testar a conexão com o banco de dados
+// Rota para testar a conexão com o banco 
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -27,7 +30,7 @@ app.get('/', async (req, res) => {
   }
 });
 
-// Listar todos os registros de uma tabela
+// Lista todos os registros de uma tabela
 app.get('/:table', async (req, res) => {
   const { table } = req.params;
   try {
@@ -39,7 +42,7 @@ app.get('/:table', async (req, res) => {
   }
 });
 
-// Obter um registro específico por ID
+// Obtem um registro específico por ID
 app.get('/:table/:id', async (req, res) => {
   const { table, id } = req.params;
   try {
@@ -83,7 +86,7 @@ app.post('/:table', validateApa, async (req, res) => {
   }
 });
 
-// Atualizar dados por ID em uma tabela
+// Atualiza dados por ID em uma tabela
 app.put('/:table/:id', validateApa, async (req, res) => {
   // Verifica os erros de validação
   const errors = validationResult(req);
@@ -111,7 +114,7 @@ app.put('/:table/:id', validateApa, async (req, res) => {
   }
 });
 
-// Deletar dados por ID em uma tabela
+// Deleta dados por ID em uma tabela
 app.delete('/:table/:id', async (req, res) => {
   const { table, id } = req.params;
   try {
@@ -126,7 +129,7 @@ app.delete('/:table/:id', async (req, res) => {
   }
 });
 
-// Buscar registros por nome
+// Busca registros por nome
 app.get('/:table/nome_completo/:nome', async (req, res) => {
   const { table, nome } = req.params;
   try {
@@ -141,7 +144,7 @@ app.get('/:table/nome_completo/:nome', async (req, res) => {
   }
 });
 
-// Iniciando o servidor
+// Iniciar o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });

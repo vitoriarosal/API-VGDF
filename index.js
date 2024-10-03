@@ -4,12 +4,71 @@ const favicon = require('serve-favicon');
 const path = require('path');
 const { validationResult } = require('express-validator');
 const { validateApa } = require('./validators'); 
-
-
+const cors = require ('cors')
 
 
 const app = express();
+app.use(cors());
+
 app.use(express.json());
+
+//app.use((req, res, next) => {
+
+//res.header("Access-Control-Allow-Origin", "*")
+//});
+//res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+
+//res.header("Acess-Control-Allow-Headers", "Content-Type");
+
+//next();
+
+app.use(cors({
+  origin: 'http://localhost:3000', // Porta onde seu frontend está rodando
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type'],
+}));
+
+//app.post('/api/submit', validateApa, async (req, res) => {
+ // console.log(req.body);
+//});
+
+
+app.post('/api/submit', validateApa, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { nome_completo, data_de_nascimento, genero, ocupacao, telefone, instagram, email, regiao_onde_mora, orgao, comunidade_onde_mora, origem } = req.body;
+  const emailToSave = email === '' ? null : email;
+
+  try {
+    // Verificar se o número de telefone já existe no banco de dados
+    const checkPhone = await pool.query('SELECT telefone FROM BaseDeDados WHERE telefone = $1', [telefone]);
+
+    // Se o número de telefone já estiver cadastrado, retornar erro
+    if (checkPhone.rows.length > 0) {
+      return res.status(400).json({ error: 'Já tem um número cadastrado.' });
+    }
+
+    // Se o número de telefone não existir, faz a inserção
+    const result = await pool.query(
+      `INSERT INTO BaseDeDados (nome_completo, data_de_nascimento, genero, ocupacao, telefone, instagram, email, regiao_onde_mora, orgao, comunidade_onde_mora, origem) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [nome_completo, data_de_nascimento, genero, ocupacao, telefone, instagram, emailToSave, regiao_onde_mora, orgao, comunidade_onde_mora, origem]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') {  // Código para violação de chave única
+      res.status(400).json({ error: 'Número de telefone já cadastrado.' });
+    } else {
+      console.error(err);
+      res.status(500).send('Erro ao inserir dados');
+    }
+  }
+});
+
+
+
 
 // Middleware para servir o favicon
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -65,6 +124,9 @@ app.post('/:table', validateApa, async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
+  console.log(req.body);
+  console.log("Email recebido: ", req.body.email);
+
   const { table } = req.params;
   const columns = Object.keys(req.body);
   const values = Object.values(req.body);
@@ -85,6 +147,7 @@ app.post('/:table', validateApa, async (req, res) => {
     }
   }
 });
+
 
 // Atualiza dados por ID em uma tabela
 app.put('/:table/:id', validateApa, async (req, res) => {
@@ -148,3 +211,20 @@ app.get('/:table/nome_completo/:nome', async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
+
+
+
+/*/{
+	"nome_completo": "JOÃO VICTOR GOMES PEREIRA",
+	"data_de_nascimento": "3-jan.",
+	"genero": null,
+	"ocupacao": null,
+	"telefone": "(61) 9931-83823",
+	"instagram": null,
+	"email": "gggabrielagomes@gmail.com",
+	"regiao_onde_mora": "SOBRADINHO",
+	"orgao": null,
+	"comunidade": null,
+	"origem": null,
+	"id": 37712
+}*/
